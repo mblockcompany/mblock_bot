@@ -124,3 +124,7 @@ bot.onText(/\/miss (.+)/, (msg, match) => {
 
     func.onSelect(msg.chat.id, networkDict, split[0], split[1]);
 })
+
+bot.onText("/version", (msg) => {
+    func.onVersion(msg.chat.id);
+})

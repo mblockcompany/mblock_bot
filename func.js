@@ -142,10 +142,16 @@ export async function onStatus(chatId, ipList) {
 }
 
 export function onHelp(chatId) {
+    var message = text.notAuthHelp;
+
     if(authenticationDict[chatId])
-        sendMessage(chatId, text.Help);
-    else
-        sendMessage(chatId, text.notAuthHelp);
+        message += text.Help
+
+    sendMessage(chatId, text.Help)
+}
+
+export function onVersion(chatId) {
+    sendMessage(chatId, text.version);
 }
 
 

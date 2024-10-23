@@ -1,6 +1,6 @@
 {
-  "name": "tendermintbot",
-  "version": "1.0.0",
+  "name": "mblock_bot",
+  "version": "1.0.2",
   "main": "index.js",
   "scripts": {
     "run": "node main.js",
