@@ -30,12 +30,12 @@ export function Authentication(chatId, isSuccess) {
 
 export const Help =
     "/help : 도움말\n" +
-    "/start [비밀번호] : 사용자 인증\n" +
-    "/add [node IP] : 블록 스캔할 websocket IP\n" +
+    "/start (비밀번호) : 사용자 인증\n" +
+    "/add (node IP) : 블록 스캔할 websocket IP\n" +
     "/show : 등록된 Node 확인\n" +
     "/status : 등록된 Node 정보 출력\n" +
-    "/delete [node IP] : 블록 스캔할 IP 삭제\n" +
-    "/miss [조회 시작 날짜] [(Opt)조회 완료 날짜] : Missed Block 개수 조회";
+    "/delete (node IP) : 블록 스캔할 IP 삭제\n" +
+    "/miss (조회 시작 날짜) ((Opt)조회 완료 날짜) : Missed Block 개수 조회, 날짜는 8자리 ex)20201225";
 
 export const notAuthHelp =
     "/help : 도움말\n" +

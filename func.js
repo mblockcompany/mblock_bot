@@ -56,7 +56,7 @@ export async function onMessage(chatId, ip, chainId, height, signatures, myAddre
     });
 
 
-    if (findoutMyVali == null || findoutMyVali.block_id_flag !== 2) {
+    if (findoutMyVali == null || (findoutMyVali.block_id_flag !== 2 && findoutMyVali.block_id_flag !== 3)) {
         const block = await getBlockData(ip, height);
         DB.insertMissblockData(chainId, height, changeTime(block.created), block.proposer);
         let message = `*[Miss Block Detected]*\n` + text.MissBlock(chainId, height, myAddress, block.proposer);
@@ -209,7 +209,7 @@ export async function getValiInfo(ip) {
 }
 
 export async function getValidatorList(ip) {
-    const response = await axios.get(`http://${ip}:26657/validators`);
+    const response = await axios.get(`http://${ip}:26657/validators?per_page=200`);
 
     const validators = response.data.result.validators;
     var output = {};
