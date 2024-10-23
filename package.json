@@ -1,0 +1,20 @@
+{
+  "name": "tendermintbot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "run": "node main.js",
+    "test": "node --inspect main.js"
+  },
+  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "mysql": "^2.18.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "winston": "^3.15.0"
+  }
+}
