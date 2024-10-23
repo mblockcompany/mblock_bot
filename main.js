@@ -127,4 +127,4 @@ bot.onText(/\/miss (.+)/, (msg, match) => {
 
 bot.onText("/version", (msg) => {
     func.onVersion(msg.chat.id);
-})
+});

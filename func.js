@@ -147,7 +147,7 @@ export function onHelp(chatId) {
     if(authenticationDict[chatId])
         message += text.Help
 
-    sendMessage(chatId, text.Help)
+    sendMessage(chatId, message)
 }
 
 export function onVersion(chatId) {
