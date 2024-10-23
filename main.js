@@ -13,7 +13,6 @@ bot.onText(/\/add (.+)/, (msg, match) => {
         return;
     }
 
-
     const ip = match[1]
 
     if (ip in validatorNodeDict) {
@@ -27,6 +26,7 @@ bot.onText(/\/add (.+)/, (msg, match) => {
         validatorNodeDict[ip] = new ValidatorNode(new WebSocket(webSocketURL));
     } catch (e) {
         func.sendMessage(msg.chat.id, "IP를 다시 확인해 주세요")
+        logger.error(e)
         return;
     }
 
