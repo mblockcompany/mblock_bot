@@ -49,22 +49,33 @@ export function onStart(chatId, username, input) {
     sendMessage(chatId, text.Authentication(chatId, authenticationDict[chatId]));
 }
 
-export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddress) {
+export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddress, voteDict) {
+
+    if(voteDict[chainId] == null)
+        return;
+
     const findoutMyVali = signatures.find(element => {
         if (element.validator_address === myAddress)
             return element;
     });
 
-
     if (findoutMyVali == null || (findoutMyVali.block_id_flag !== 2 && findoutMyVali.block_id_flag !== 3)) {
         const block = await getBlockData(ip, height);
-        DB.insertMissblockData(chainId, height, changeTime(block.created), block.proposer);
+        await DB.insertMissblockData(chainId, height, changeTime(block.created), block.proposer);
+
         let message = `*[Miss Block Detected]*\n` + text.MissBlock(chainId, height, myAddress, block.proposer);
+
+        const copy = Object.assign([], voteDict[chainId][height]);
+
+        if(!(copy == null || !copy.length))
+            onVote(copy);
 
         logger.warn(`${chainId} - ${height} Miss Block Detected`);
 
         sendMessageAllChat(message)
     }
+
+    delete voteDict[chainId][height];
 }
 
 export async function onVote(voteDtoList) {

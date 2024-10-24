@@ -5,7 +5,7 @@ import {sendMessage} from "./func.js";
 import {logger} from "./log.js";
 
 
-var prevVoteInfo = {};
+var voteInfo = {};
 var validatorNodeDict = {};
 
 bot.onText(/\/add (.+)/, (msg, match) => {
@@ -50,7 +50,7 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                     const height = blockInfo.last_commit.height;
                     const signatures = blockInfo.last_commit.signatures;
 
-                    func.onNewBlock(msg.chat.id, ip, chainId, height, signatures, validatorNodeDict[ip].ValidatorInfo.validatorAddr);
+                    func.onNewBlock(msg.chat.id, ip, chainId, height, signatures, validatorNodeDict[ip].ValidatorInfo.validatorAddr, voteInfo);
                     break;
                 }
                 case "Vote": {
@@ -60,16 +60,15 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                     if(voteType === 32)
                         break;
 
-
                     const network  = validatorNodeDict[ip].ValidatorInfo.network;
                     const height = parseInt(Vote.height);
                     const index = parseInt(Vote.validator_index);
 
-                    if(prevVoteInfo[network] == null || prevVoteInfo[network][height] == null) {
+                    if(voteInfo[network] == null || voteInfo[network][height] == null) {
                         break;
                     }
 
-                    prevVoteInfo[network][height].push(new VoteDto(network, height, index, voteType));
+                    voteInfo[network][height].push(new VoteDto(network, height, index, voteType));
 
                     break;
                 }
@@ -77,21 +76,14 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                     const network = validatorNodeDict[ip].ValidatorInfo.network;
                     const newBlockHeight = data.value.height;
 
-                    if(prevVoteInfo[network] == null) {
-                        prevVoteInfo[network] = {};
-                        break;
+                    if(voteInfo[network] == null) {
+                        voteInfo[network] = {};
+                        sendMessage(msg.chat.id, `${ip} Miss Block 감지 준비 완료`);
                     }
 
-                    if(prevVoteInfo[network][newBlockHeight] == null)
-                        prevVoteInfo[network][newBlockHeight] = [];
+                    if(voteInfo[network][newBlockHeight] == null)
+                        voteInfo[network][newBlockHeight] = [];
 
-                    const copy = Object.assign([], prevVoteInfo[network][newBlockHeight - 1]);
-                    delete prevVoteInfo[network][newBlockHeight - 1];
-
-                    if(copy == null || !copy.length)
-                        break;
-
-                    func.onVote(copy);
                     break;
                 }
             }
