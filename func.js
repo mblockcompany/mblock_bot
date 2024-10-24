@@ -32,6 +32,11 @@ export function onDelete(username, ip, validatorNode) {
 export function onStart(chatId, username, input) {
     const password = process.env.password;
 
+    if(authenticationDict[chatId]) {
+        sendMessage(chatId, "이미 인증된 사용자입니다.");
+        return;
+    }
+
     authenticationDict[chatId] = input === password;
 
     if(authenticationDict[chatId]) {

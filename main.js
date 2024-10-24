@@ -121,6 +121,11 @@ bot.onText(/\/delete (.+)/, (msg, match) => {
 
     const ip = match[1];
 
+    if(validatorNodeDict[ip] == null) {
+        sendMessage(msg.chat.id, "등록되지 않은 노드입니다.");
+        return;
+    }
+
     func.onDelete(msg.from.username, ip, validatorNodeDict[ip]);
 });
 
