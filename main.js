@@ -1,10 +1,11 @@
 import {bot} from "./tendermintBot.js";
 import * as func from "./func.js";
-import {ValidatorNode} from "./dtos.js";
+import {ValidatorNode, VoteDto} from "./dtos.js";
 import {sendMessage} from "./func.js";
 import {logger} from "./log.js";
 
 
+var prevVoteInfo = {};
 var validatorNodeDict = {};
 
 bot.onText(/\/add (.+)/, (msg, match) => {
@@ -31,21 +32,71 @@ bot.onText(/\/add (.+)/, (msg, match) => {
     }
 
     validatorNodeDict[ip].WebSocket.onopen = async () => {
-        func.onOpen(msg.chat.id, ip, validatorNodeDict[ip].WebSocket);
-
-        validatorNodeDict[ip].setValidatorInfo(await func.getValiInfo(ip));
+        func.onOpen(msg.chat.id, ip, validatorNodeDict[ip]);
     };
 
     validatorNodeDict[ip].WebSocket.onmessage = (event) => {
         const messageData = JSON.parse(event.data);
 
-        if (messageData && messageData.result && messageData.result.data) {
-            const blockInfo = messageData.result.data.value.block;
-            const chainId = blockInfo.header.chain_id;
-            const height = blockInfo.last_commit.height;
-            const signatures = blockInfo.last_commit.signatures;
+        if (messageData && messageData.result && messageData.result.data && messageData.result.data.type) {
 
-            func.onMessage(msg.chat.id, ip, chainId, height, signatures, validatorNodeDict[ip].ValidatorInfo.validatorAddr);
+            const data = messageData.result.data;
+            const event = messageData.result.events["tm.event"][0];
+
+            switch(event) {
+                case "NewBlock": {
+                    const blockInfo = messageData.result.data.value.block;
+                    const chainId = blockInfo.header.chain_id;
+                    const height = blockInfo.last_commit.height;
+                    const signatures = blockInfo.last_commit.signatures;
+
+                    func.onNewBlock(msg.chat.id, ip, chainId, height, signatures, validatorNodeDict[ip].ValidatorInfo.validatorAddr);
+                    break;
+                }
+                case "Vote": {
+                    const Vote = data.value.Vote;
+                    const voteType = parseInt(Vote.type);
+
+                    if(voteType === 32)
+                        break;
+
+
+                    const network  = validatorNodeDict[ip].ValidatorInfo.network;
+                    const height = parseInt(Vote.height);
+                    const index = parseInt(Vote.validator_index);
+
+                    if(prevVoteInfo[network] == null || prevVoteInfo[network][height] == null) {
+                        break;
+                    }
+
+                    prevVoteInfo[network][height].push(new VoteDto(network, height, index, voteType));
+
+                    break;
+                }
+                case "NewRound" : {
+                    const network = validatorNodeDict[ip].ValidatorInfo.network;
+                    const newBlockHeight = data.value.height;
+
+                    if(prevVoteInfo[network] == null) {
+                        prevVoteInfo[network] = {};
+                        break;
+                    }
+
+                    if(prevVoteInfo[network][newBlockHeight] == null)
+                        prevVoteInfo[network][newBlockHeight] = [];
+
+                    const copy = Object.assign([], prevVoteInfo[network][newBlockHeight - 1]);
+                    delete prevVoteInfo[network][newBlockHeight - 1];
+
+                    if(copy == null || !copy.length)
+                        break;
+
+                    func.onVote(copy);
+                    break;
+                }
+            }
+
+
         }
     }
 
@@ -125,6 +176,27 @@ bot.onText(/\/miss (.+)/, (msg, match) => {
     func.onSelect(msg.chat.id, networkDict, split[0], split[1]);
 })
 
+
+bot.onText(/\/vote (.+)/, (msg, match) => {
+    if(!func.getAuthentication(msg.chat.id)) {
+        logger.warn(`비정상 접근 감지 ${msg.from.username}`);
+        return;
+    }
+
+    const split = match[1].split(" ");
+
+    const height = parseInt(split[0]);
+    const network = split[1];
+
+    if(height == null || network == null) {
+        sendMessage(msg.chat.id, "높이 및 네트워크가 잘못되었습니다.");
+        return;
+    }
+
+    func.onSelectVote(msg.chat.id, height, network);
+})
+
 bot.onText("/version", (msg) => {
     func.onVersion(msg.chat.id);
 });
+

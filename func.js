@@ -10,21 +10,16 @@ import {logger} from "./log.js";
 dotenv.config();
 var authenticationDict = {};
 
-export function onOpen(chatId, ip, ws) {
+export async function onOpen(chatId, ip, validatorNode) {
     sendMessage(chatId, ip + " 연결이 성공적으로 이루어졌습니다.");
 
     logger.info(`${ip} Websocket connected`)
 
-    const subscribeMessage = {
-        jsonrpc: "2.0",
-        method: "subscribe",
-        id: "1",
-        params: {
-            "query": "tm.event='NewBlock'"
-        }
-    };
+    await validatorNode.setValidatorInfo(await getValiInfo(ip));
 
-    ws.send(JSON.stringify(subscribeMessage));
+    subscribeToEvent(validatorNode.WebSocket, "NewBlock", 1);
+    subscribeToEvent(validatorNode.WebSocket, "Vote",2);
+    subscribeToEvent(validatorNode.WebSocket, "NewRound",3);
 }
 
 export function onDelete(username, ip, validatorNode) {
@@ -49,7 +44,7 @@ export function onStart(chatId, username, input) {
     sendMessage(chatId, text.Authentication(chatId, authenticationDict[chatId]));
 }
 
-export async function onMessage(chatId, ip, chainId, height, signatures, myAddress) {
+export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddress) {
     const findoutMyVali = signatures.find(element => {
         if (element.validator_address === myAddress)
             return element;
@@ -67,11 +62,15 @@ export async function onMessage(chatId, ip, chainId, height, signatures, myAddre
     }
 }
 
+export async function onVote(voteDtoList) {
+    await DB.insertVoteData(voteDtoList);
+}
+
 export async function onSelect(chatId, networkDict, start, end) {
     const results = await DB.selectMissblockData(start, end);
 
     if(results == null) {
-        logger.error("DB 조회 실패")
+        logger.error("Missblock 조회 실패")
         sendMessage(chatId, "조회에 실패하였습니다.");
         return;
     }
@@ -113,6 +112,32 @@ export async function onSelect(chatId, networkDict, start, end) {
     })
 
     sendMessage(chatId, output);
+}
+
+export async function onSelectVote(chatId, height, network) {
+    const results = await DB.selectVote(height, network);
+
+    if(results == null) {
+        logger.error("Vote 조회 실패")
+        sendMessage(chatId, "조회에 실패하였습니다.");
+        return;
+    }
+
+    var strVote = ["", ""];
+
+    strVote[0] = "*[PreVote]*\n";
+    strVote[1] = "*[PreCommit]*\n";
+
+    results.forEach((row) => {
+        const type = row.type === 2 ? "PreCommit" : "PreVote";
+        const arrayIndex = row.type - 1;
+        strVote[arrayIndex] += `${row.index + 1} - ${type}\n`;
+    });
+
+    const message = `*[${height}]*\n` +
+        `${strVote[0]}\n${strVote[1]}`;
+
+    sendMessage(chatId, message);
 }
 
 export function onShow(chatId, validatorNodeDict) {
@@ -252,4 +277,15 @@ function messageFilter(str) {
     return str.replaceAll("_", "-");
 }
 
+function subscribeToEvent(ws, eventType, id) {
+    const request = {
+        "jsonrpc": "2.0",
+        "method": "subscribe",
+        "params": {
+            "query": `tm.event = '${eventType}'`
+        },
+        "id": id // 랜덤 ID 생성
+    };
 
+    ws.send(JSON.stringify(request));
+}

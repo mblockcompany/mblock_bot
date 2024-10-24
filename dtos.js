@@ -72,3 +72,28 @@ export class CountDto {
         return this._count;
     }
 }
+
+export class VoteDto {
+    constructor(network, height, index, type) {
+        this._network = network;
+        this._height = height;
+        this._index = index;
+        this._type = type;
+    }
+
+    get network() {
+        return this._network;
+    }
+
+    get height() {
+        return this._height;
+    }
+
+    get index() {
+        return this._index;
+    }
+
+    get type() {
+        return this._type;
+    }
+}

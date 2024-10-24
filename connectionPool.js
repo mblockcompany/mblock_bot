@@ -14,7 +14,9 @@ export const pool = mysql.createPool({
     connectionLimit: 30
 });
 
-export const insertMissBlockSQL = `insert into missblock_info(chain, height, created, proposer) values (?, ?, ?, ?)`;
+const insertMissBlockSQL = `insert into missblock_info(chain, height, created, proposer) values (?, ?, ?, ?)`;
+const insertVoteSQL = "insert into vote(chain, height, `index`, type) values(?, ?, ?, ?);";
+const selectVoteSQL = "select * from vote where height = ? and chain = ? order by `index` asc;";
 
 export function selectMissBlockSQL(isSetEnd = false) {
 
@@ -79,9 +81,48 @@ export async function selectMissblockData(start, end = null) {
 
             if (err) {
                 logger.error(err)
-                return reject(err); // 오류 발생 시 reject
+                sendErrorMsg();
+                return reject(err);
             }
-            resolve(results); // 결과 반환
+
+            resolve(results);
+        });
+    });
+}
+
+export async function insertVoteData(voteDtoList) {
+    const connection = await getConnection();
+
+    voteDtoList.forEach((dto) => {
+        const network = dto.network;
+
+        connection.query(insertVoteSQL, [dto.network, dto.height, dto.index, dto.type], (err, results) => {
+            if (err) {
+                logger.error(err);
+                sendErrorMsg();
+            }
+        });
+    })
+
+    connection.release();
+}
+
+
+export async function selectVote(height, network) {
+
+    const connection = await getConnection();
+
+    return await new Promise((resolve, reject) => {
+        connection.query(selectVoteSQL, [height, network], (err, results) => {
+            connection.release(); // 연결 해제
+
+            if (err) {
+                logger.error(err)
+                sendErrorMsg();
+                return reject(err);
+            }
+
+            resolve(results);
         });
     });
 }
