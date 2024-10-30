@@ -14,10 +14,11 @@ export function Status(id, network, version, moniker, latestBlockHeight, valiAdd
         `🎫Voting Power : ${votingPower}\n`;
 }
 
-export function MissBlock(chainId, Height, validatorAddr, proposer) {
+export function MissBlock(chainId, Height, validatorAddr, validatorIndex,  proposer) {
     return  `📡network : ${chainId}\n` +
         `📈Height : ${Height}\n` +
         `🏠Validator Address : ${validatorAddr}\n` +
+        `ℹ️Validator Index : ${validatorIndex}\n` +
         `🪪Proposer Address : ${proposer}`;
 }
 

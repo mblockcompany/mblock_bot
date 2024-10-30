@@ -62,8 +62,9 @@ export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddr
     if (findoutMyVali == null || (findoutMyVali.block_id_flag !== 2 && findoutMyVali.block_id_flag !== 3)) {
         const block = await getBlockData(ip, height);
         await DB.insertMissblockData(chainId, height, changeTime(block.created), block.proposer);
+        const addressList = await getValidatorList(ip);
 
-        let message = `*[Miss Block Detected]*\n` + text.MissBlock(chainId, height, myAddress, block.proposer);
+        let message = `*[Miss Block Detected]*\n` + text.MissBlock(chainId, height, myAddress, addressList[myAddress], block.proposer);
 
         const copy = Object.assign([], voteDict[chainId][height]);
 
