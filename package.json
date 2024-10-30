@@ -1,6 +1,6 @@
 {
   "name": "mblock_bot",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "index.js",
   "scripts": {
     "run": "node main.js",
