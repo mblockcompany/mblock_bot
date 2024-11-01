@@ -1,7 +1,7 @@
 import {bot} from "./tendermintBot.js";
 import * as func from "./func.js";
 import {ValidatorNode, VoteDto} from "./dtos.js";
-import {sendMessage} from "./func.js";
+import {sendMessage, sendMessageAllChat} from "./func.js";
 import {logger} from "./log.js";
 
 
@@ -195,5 +195,22 @@ bot.onText(/\/vote (.+)/, (msg, match) => {
 
 bot.onText("/version", (msg) => {
     func.onVersion(msg.chat.id);
+});
+
+// 프로그램 종료 시 처리할 작업을 정의
+process.on('exit', (code) => {
+    sendMessageAllChat(`Mblock Bot이 종료 되었습니다`);
+});
+
+// Ctrl + C로 프로그램 종료 시 처리할 작업
+process.on('SIGINT', () => {
+    sendMessageAllChat(`Mblock Bot이 종료 되었습니다`);
+    process.exit();
+});
+
+// 기타 종료 시도 시 작업 정의 (예: 오류 발생)
+process.on('uncaughtException', (err) => {
+    sendMessageAllChat('예상치 못한 오류로 인해 종료됩니다');
+    process.exit(1);
 });
 
