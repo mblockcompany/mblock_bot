@@ -1,4 +1,5 @@
 
+
 export function Show(ip, address) {
     return `🖥️${ip} - ${address}\n`;
 }
@@ -42,4 +43,4 @@ export const notAuthHelp =
     "/start (비밀번호) : 사용자 인증\n" +
     "/version : 버전 확인\n"
 
-export const version = "1.0.3";
+export const version = process.env.npm_package_version;

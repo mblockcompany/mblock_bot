@@ -1,12 +1,13 @@
 import {bot} from "./tendermintBot.js";
 import * as func from "./func.js";
 import {ValidatorNode, VoteDto} from "./dtos.js";
-import {sendMessage, sendMessageAllChat} from "./func.js";
+import {initAuth, sendMessage, sendMessageAllChat} from "./func.js";
 import {logger} from "./log.js";
-
 
 var voteInfo = {};
 var validatorNodeDict = {};
+
+await initAuth();
 
 bot.onText(/\/add (.+)/, (msg, match) => {
     if(!func.getAuthentication(msg.chat.id)) {
@@ -81,8 +82,7 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                         sendMessage(msg.chat.id, `${ip} Miss Block 감지 준비 완료`);
                     }
 
-                    if(voteInfo[network][newBlockHeight] == null)
-                        voteInfo[network][newBlockHeight] = [];
+                    voteInfo[network][newBlockHeight] = [];
 
                     break;
                 }
@@ -93,12 +93,20 @@ bot.onText(/\/add (.+)/, (msg, match) => {
     }
 
     validatorNodeDict[ip].WebSocket.onerror = (error) => {
+        if(validatorNodeDict[ip].ValidatorInfo.network != null) {
+            delete voteInfo[validatorNodeDict[ip].ValidatorInfo.network];
+        }
+
         validatorNodeDict[ip].delete();
         delete validatorNodeDict[ip];
         func.onError(error, ip)
     }
 
     validatorNodeDict[ip].WebSocket.onclose = () => {
+        if(validatorNodeDict[ip].ValidatorInfo.network != null) {
+            delete voteInfo[validatorNodeDict[ip].ValidatorInfo.network];
+        }
+
         validatorNodeDict[ip].delete();
         delete validatorNodeDict[ip];
         func.onClose(ip)

@@ -8,7 +8,7 @@ import {logger} from "./log.js";
 
 
 dotenv.config();
-var authenticationDict = {};
+var authenticationDict = null;
 
 export async function onOpen(chatId, ip, validatorNode) {
     sendMessage(chatId, ip + " 연결이 성공적으로 이루어졌습니다.");
@@ -29,8 +29,31 @@ export function onDelete(username, ip, validatorNode) {
     sendMessageAllChat(message);
 }
 
-export function onStart(chatId, username, input) {
+export async function initAuth() {
+    if(authenticationDict == null) {
+        authenticationDict = {};
+        const results = await DB.selectAuth();
+
+        if(results == null) {
+            logger.error("Missblock 조회 실패")
+            sendMessage(chatId, "조회에 실패하였습니다.");
+            return;
+        }
+
+        results.forEach((row) => {
+            authenticationDict[row.id] = true;
+        });
+    }
+}
+
+export async function onStart(chatId, username, input) {
+    chatId = parseInt(chatId);
     const password = process.env.password;
+
+    if(authenticationDict == null) {
+        sendMessage(chatId, "프로그램이 실행 준비중입니다. 잠시만 기다려주세요");
+        return;
+    }
 
     if(authenticationDict[chatId]) {
         sendMessage(chatId, "이미 인증된 사용자입니다.");
@@ -40,6 +63,7 @@ export function onStart(chatId, username, input) {
     authenticationDict[chatId] = input === password;
 
     if(authenticationDict[chatId]) {
+        await DB.insertAuthData(chatId);
         logger.info(`${username} 연결 성공`)
     }
     else {
@@ -69,7 +93,7 @@ export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddr
         const copy = Object.assign([], voteDict[chainId][height]);
 
         if(!(copy == null || !copy.length))
-            onVote(copy);
+            await onVote(copy);
 
         logger.warn(`${chainId} - ${height} Miss Block Detected`);
 

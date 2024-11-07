@@ -16,6 +16,8 @@ export const pool = mysql.createPool({
 
 const insertMissBlockSQL = `insert into missblock_info(chain, height, created, proposer) values (?, ?, ?, ?)`;
 const insertVoteSQL = "insert into vote(chain, height, `index`, type) values(?, ?, ?, ?);";
+const insertAuthSQL = "insert into auth(id) values(?);";
+const selectAuthSQL = "select * from auth;";
 const selectVoteSQL = "select * from vote where height = ? and chain = ? order by `index` asc;";
 
 export function selectMissBlockSQL(isSetEnd = false) {
@@ -105,6 +107,38 @@ export async function insertVoteData(voteDtoList) {
     })
 
     connection.release();
+}
+
+export async function insertAuthData(id) {
+    const connection = await getConnection();
+
+    connection.query(insertAuthSQL, [id], (err, result) => {
+        if (err) {
+            logger.error(err);
+            sendErrorMsg();
+        }
+    });
+
+    connection.release();
+}
+
+export async function selectAuth() {
+
+    const connection = await getConnection();
+
+    return await new Promise((resolve, reject) => {
+        connection.query(selectAuthSQL, [], (err, results) => {
+            connection.release(); // 연결 해제
+
+            if (err) {
+                logger.error(err)
+                sendErrorMsg();
+                return reject(err);
+            }
+
+            resolve(results);
+        });
+    });
 }
 
 
