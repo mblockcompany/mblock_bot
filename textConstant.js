@@ -1,4 +1,7 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
+export const { version } = require('./package.json');
 
 export function Show(ip, address) {
     return `🖥️${ip} - ${address}\n`;
@@ -42,5 +45,3 @@ export const notAuthHelp =
     "/help : 도움말\n" +
     "/start (비밀번호) : 사용자 인증\n" +
     "/version : 버전 확인\n"
-
-export const version = process.env.npm_package_version;
