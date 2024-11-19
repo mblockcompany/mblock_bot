@@ -94,6 +94,10 @@ export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddr
 
         //if(!(copy == null || !copy.length))
 
+        if(copy == null || copy.length === 0) {
+            logger.error(`${chainId} - ${height} null vote array`);
+        }
+
         await onVote(copy);
 
         logger.warn(`${chainId} - ${height} Miss Block Detected`);
