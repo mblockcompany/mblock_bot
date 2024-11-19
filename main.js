@@ -83,7 +83,7 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                     }
 
                     if(voteInfo[network][newBlockHeight] != null) {
-                        logger.warn(`${newBlockHeight} 새로운 라운드 진행`);
+                        logger.warn(`${network} - ${newBlockHeight} 새로운 라운드 진행`);
                     }
 
                     voteInfo[network][newBlockHeight] = [];
