@@ -92,8 +92,9 @@ export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddr
 
         const copy = Object.assign([], voteDict[chainId][height]);
 
-        if(!(copy == null || !copy.length))
-            await onVote(copy);
+        //if(!(copy == null || !copy.length))
+
+        await onVote(copy);
 
         logger.warn(`${chainId} - ${height} Miss Block Detected`);
 

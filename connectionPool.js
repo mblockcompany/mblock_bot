@@ -96,8 +96,6 @@ export async function insertVoteData(voteDtoList) {
     const connection = await getConnection();
 
     voteDtoList.forEach((dto) => {
-        const network = dto.network;
-
         connection.query(insertVoteSQL, [dto.network, dto.height, dto.index, dto.type], (err, results) => {
             if (err) {
                 logger.error(err);

@@ -82,18 +82,19 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                         sendMessage(msg.chat.id, `${ip} Miss Block 감지 준비 완료`);
                     }
 
-                    voteInfo[network][newBlockHeight] = [];
+                    if(voteInfo[network][newBlockHeight] != null) {
+                        logger.warn(`${newBlockHeight} 새로운 라운드 진행`);
+                    }
 
+                    voteInfo[network][newBlockHeight] = [];
                     break;
                 }
             }
-
-
         }
     }
 
     validatorNodeDict[ip].WebSocket.onerror = (error) => {
-        if(validatorNodeDict[ip].ValidatorInfo.network != null) {
+        if(validatorNodeDict[ip].ValidatorInfo != null) {
             delete voteInfo[validatorNodeDict[ip].ValidatorInfo.network];
         }
 
@@ -103,7 +104,7 @@ bot.onText(/\/add (.+)/, (msg, match) => {
     }
 
     validatorNodeDict[ip].WebSocket.onclose = () => {
-        if(validatorNodeDict[ip].ValidatorInfo.network != null) {
+        if(validatorNodeDict[ip].ValidatorInfo != null) {
             delete voteInfo[validatorNodeDict[ip].ValidatorInfo.network];
         }
 
