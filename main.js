@@ -36,7 +36,7 @@ bot.onText(/\/add (.+)/, (msg, match) => {
         func.onOpen(msg.chat.id, ip, validatorNodeDict[ip]);
     };
 
-    validatorNodeDict[ip].WebSocket.onmessage = (event) => {
+    validatorNodeDict[ip].WebSocket.onmessage = async (event) => {
         const messageData = JSON.parse(event.data);
 
         if (messageData && messageData.result && messageData.result.data && messageData.result.data.type) {
@@ -51,7 +51,17 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                     const height = blockInfo.last_commit.height;
                     const signatures = blockInfo.last_commit.signatures;
 
-                    func.onNewBlock(msg.chat.id, ip, chainId, height, signatures, validatorNodeDict[ip].ValidatorInfo.validatorAddr, voteInfo);
+                    const result = await func.onNewBlock(msg.chat.id, ip, chainId, height, signatures, validatorNodeDict[ip].ValidatorInfo.validatorAddr, voteInfo);
+
+                    if(result) {
+                        if(voteInfo[chainId][height] == null) {
+                            logger.error(`${chainId} - ${height} vote array is null`)
+                        }
+
+                        await func.onVote(voteInfo[chainId][height])
+                    }
+
+                    delete voteInfo[chainId][height];
                     break;
                 }
                 case "Vote": {
@@ -65,8 +75,12 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                     const height = parseInt(Vote.height);
                     const index = parseInt(Vote.validator_index);
 
-                    if(voteInfo[network] == null || voteInfo[network][height] == null) {
+                    if(voteInfo[network] == null) {
                         break;
+                    }
+
+                    if(voteInfo[network][height] == null) {
+                        voteInfo[network][height] = []
                     }
 
                     voteInfo[network][height].push(new VoteDto(network, height, index, voteType));
@@ -75,18 +89,19 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                 }
                 case "NewRound" : {
                     const network = validatorNodeDict[ip].ValidatorInfo.network;
-                    const newBlockHeight = data.value.height;
+                    const height = data.value.height;
 
                     if(voteInfo[network] == null) {
                         voteInfo[network] = {};
                         sendMessage(msg.chat.id, `${ip} Miss Block 감지 준비 완료`);
                     }
 
-                    if(voteInfo[network][newBlockHeight] != null) {
-                        logger.warn(`${network} - ${newBlockHeight} 새로운 라운드 진행`);
+                    if(voteInfo[network][height] != null) {
+                        voteInfo[network][height] = []
+                        logger.warn(`${network} - ${height} 새로운 라운드 진행`);
                     }
 
-                    voteInfo[network][newBlockHeight] = [];
+                    //voteInfo[network][height] = [];
                     break;
                 }
             }

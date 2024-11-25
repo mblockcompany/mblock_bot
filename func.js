@@ -73,10 +73,13 @@ export async function onStart(chatId, username, input) {
     sendMessage(chatId, text.Authentication(chatId, authenticationDict[chatId]));
 }
 
-export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddress, voteDict) {
+export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddress) {
+
+    let isMiss = false;
 
     if(voteDict[chainId] == null)
-        return;
+        return isMiss;
+
 
     const findoutMyVali = signatures.find(element => {
         if (element.validator_address === myAddress)
@@ -90,22 +93,13 @@ export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddr
 
         let message = `*[Miss Block Detected]*\n` + text.MissBlock(chainId, height, myAddress, addressList[myAddress], block.proposer);
 
-        const copy = Object.assign([], voteDict[chainId][height]);
-
-        //if(!(copy == null || !copy.length))
-
-        if(copy == null || copy.length === 0) {
-            logger.error(`${chainId} - ${height} null vote array`);
-        }
-
-        await onVote(copy);
-
         logger.warn(`${chainId} - ${height} Miss Block Detected`);
 
         sendMessageAllChat(message)
+        isMiss = true;
     }
 
-    delete voteDict[chainId][height];
+    return isMiss;
 }
 
 export async function onVote(voteDtoList) {
