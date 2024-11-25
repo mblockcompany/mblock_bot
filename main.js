@@ -51,7 +51,7 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                     const height = blockInfo.last_commit.height;
                     const signatures = blockInfo.last_commit.signatures;
 
-                    const result = await func.onNewBlock(msg.chat.id, ip, chainId, height, signatures, validatorNodeDict[ip].ValidatorInfo.validatorAddr, voteInfo);
+                    const result = await func.onNewBlock(msg.chat.id, ip, chainId, height, signatures, validatorNodeDict[ip].ValidatorInfo.validatorAddr);
 
                     if(result) {
                         if(voteInfo[chainId][height] == null) {

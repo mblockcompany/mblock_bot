@@ -77,10 +77,6 @@ export async function onNewBlock(chatId, ip, chainId, height, signatures, myAddr
 
     let isMiss = false;
 
-    if(voteDict[chainId] == null)
-        return isMiss;
-
-
     const findoutMyVali = signatures.find(element => {
         if (element.validator_address === myAddress)
             return element;
