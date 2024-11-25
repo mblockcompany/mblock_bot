@@ -90,13 +90,14 @@ bot.onText(/\/add (.+)/, (msg, match) => {
                 case "NewRound" : {
                     const network = validatorNodeDict[ip].ValidatorInfo.network;
                     const height = data.value.height;
+                    const round = data.value.round;
 
                     if(voteInfo[network] == null) {
                         voteInfo[network] = {};
                         sendMessage(msg.chat.id, `${ip} Miss Block 감지 준비 완료`);
                     }
 
-                    if(voteInfo[network][height] != null) {
+                    if(voteInfo[network][height] != null && round > 0) {
                         voteInfo[network][height] = []
                         logger.warn(`${network} - ${height} 새로운 라운드 진행`);
                     }
