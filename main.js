@@ -1,206 +1,126 @@
-import {bot} from "./tendermintBot.js";
 import * as func from "./func.js";
-import {ValidatorNode, VoteDto} from "./dtos.js";
-import {initAuth, sendMessage, sendMessageAllChat} from "./func.js";
-import {logger} from "./log.js";
+import {bot, sendMessage} from "./framework/tendermintBot.js";
+import {getAuthentication, initAuth} from "./framework/auth.js";
+import {logger} from "./framework/log.js";
+import {NodeManager} from "./manager/nodeManager.js"
+import * as command from "./command.js";
+import * as indexer from "./indexer/indexer.js";
 
-var voteInfo = {};
-var validatorNodeDict = {};
+
+const nodeManager = new NodeManager();
 
 await initAuth();
 
-bot.onText(/\/add (.+)/, (msg, match) => {
-    if(!func.getAuthentication(msg.chat.id)) {
+bot.onText(/\/add (.+)/, async (msg, match) => {
+    if(!getAuthentication(msg.chat.id)) {
         logger.warn(`비정상 접근 감지 ${msg.from.username}`);
         return;
     }
 
     const ip = match[1]
 
-    if (ip in validatorNodeDict) {
-        bot.sendMessage(msg.chat.id, "이미 존재하는 IP 입니다.");
+    if (nodeManager.isExist(ip)) {
+        sendMessage(msg.chat.id, "이미 존재하는 IP 입니다.");
         return;
     }
 
-    const webSocketURL = `ws://${ip}:26657/websocket`
+    const valiInfo = await func.getValiInfo(ip);
 
-    try {
-        validatorNodeDict[ip] = new ValidatorNode(new WebSocket(webSocketURL));
-    } catch (e) {
-        func.sendMessage(msg.chat.id, "IP를 다시 확인해 주세요")
-        logger.error(e)
+    const result = nodeManager.addNodeInfo(ip, msg.chat.id, valiInfo);
+
+    if(!result) {
         return;
     }
 
-    validatorNodeDict[ip].WebSocket.onopen = async () => {
-        func.onOpen(msg.chat.id, ip, validatorNodeDict[ip]);
-    };
+    nodeManager.addSubscribe(ip, "NewBlock", async (data) => {
+        const blockInfo = data.value.block;
+        const chainId = blockInfo.header.chain_id;
+        const height = blockInfo.last_commit.height;
+        const signatures = blockInfo.last_commit.signatures;
 
-    validatorNodeDict[ip].WebSocket.onmessage = async (event) => {
-        const messageData = JSON.parse(event.data);
+        const isMiss = await func.onNewBlock(msg.chat.id, ip, chainId, height, nodeManager.getNodeByIp(ip).ValidatorInfo.validatorAddr, signatures);
 
-        if (messageData && messageData.result && messageData.result.data && messageData.result.data.type) {
-
-            const data = messageData.result.data;
-            const event = messageData.result.events["tm.event"][0];
-
-            switch(event) {
-                case "NewBlock": {
-                    const blockInfo = messageData.result.data.value.block;
-                    const chainId = blockInfo.header.chain_id;
-                    const height = blockInfo.last_commit.height;
-                    const signatures = blockInfo.last_commit.signatures;
-
-                    const result = await func.onNewBlock(msg.chat.id, ip, chainId, height, signatures, validatorNodeDict[ip].ValidatorInfo.validatorAddr);
-
-                    if(result) {
-                        if(voteInfo[chainId][height] == null) {
-                            logger.error(`${chainId} - ${height} vote array is null`)
-                        }
-
-                        await func.onVote(voteInfo[chainId][height])
-                    }
-
-                    delete voteInfo[chainId][height];
-                    break;
-                }
-                case "Vote": {
-                    const Vote = data.value.Vote;
-                    const voteType = parseInt(Vote.type);
-
-                    if(voteType === 32)
-                        break;
-
-                    const network  = validatorNodeDict[ip].ValidatorInfo.network;
-                    const height = parseInt(Vote.height);
-                    const index = parseInt(Vote.validator_index);
-
-                    if(voteInfo[network] == null) {
-                        break;
-                    }
-
-                    if(voteInfo[network][height] == null) {
-                        voteInfo[network][height] = []
-                    }
-
-                    voteInfo[network][height].push(new VoteDto(network, height, index, voteType));
-
-                    break;
-                }
-                case "NewRound" : {
-                    const network = validatorNodeDict[ip].ValidatorInfo.network;
-                    const height = data.value.height;
-                    const round = data.value.round;
-
-                    if(voteInfo[network] == null) {
-                        voteInfo[network] = {};
-                        sendMessage(msg.chat.id, `${ip} Miss Block 감지 준비 완료`);
-                    }
-
-                    if(voteInfo[network][height] != null && round > 0) {
-                        voteInfo[network][height] = []
-                        logger.warn(`${network} - ${height} 새로운 라운드 진행`);
-                    }
-
-                    //voteInfo[network][height] = [];
-                    break;
-                }
-            }
+        if(isMiss) {
+            indexer.missBlockDetected(chainId, height);
         }
-    }
+    });
 
-    validatorNodeDict[ip].WebSocket.onerror = (error) => {
-        if(validatorNodeDict[ip].ValidatorInfo != null) {
-            delete voteInfo[validatorNodeDict[ip].ValidatorInfo.network];
-        }
+    nodeManager.addSubscribe(ip, "Vote", (data) => {
+        const network = nodeManager.getNodeByIp(ip).ValidatorInfo.network;
 
-        validatorNodeDict[ip].delete();
-        delete validatorNodeDict[ip];
-        func.onError(error, ip)
-    }
+        func.voteEvent(data, network);
+    });
 
-    validatorNodeDict[ip].WebSocket.onclose = () => {
-        if(validatorNodeDict[ip].ValidatorInfo != null) {
-            delete voteInfo[validatorNodeDict[ip].ValidatorInfo.network];
-        }
-
-        validatorNodeDict[ip].delete();
-        delete validatorNodeDict[ip];
-        func.onClose(ip)
-    }
+    nodeManager.addSubscribe(ip, "NewRound", (data) => {
+        func.newRoundEvent(data, msg.chat.id, nodeManager.getNodeByIp(ip), ip);
+    })
 });
 
 bot.onText(/\/delete (.+)/, (msg, match) => {
-    if(!func.getAuthentication(msg.chat.id)) {
+    if(!getAuthentication(msg.chat.id)) {
         logger.warn(`비정상 접근 감지 ${msg.from.username}`);
         return;
     }
 
     const ip = match[1];
 
-    if(validatorNodeDict[ip] == null) {
+    if(!nodeManager.isExist(ip)) {
         sendMessage(msg.chat.id, "등록되지 않은 노드입니다.");
         return;
     }
 
-    func.onDelete(msg.from.username, ip, validatorNodeDict[ip]);
+    nodeManager.closeWebsocket(ip);
+    command.onDelete(msg.from.username, ip);
 });
 
 bot.onText(/\/start (.+)/, (msg, match) => {
     const password = match[1];
 
-    func.onStart(msg.chat.id, msg.from.username, password);
+    command.onStart(msg.chat.id, msg.from.username, password);
 });
 
 
 bot.onText("/show", (msg) => {
-    if(!func.getAuthentication(msg.chat.id)) {
+    if(!getAuthentication(msg.chat.id)) {
         logger.warn(`비정상 접근 감지 ${msg.from.username}`);
         return;
     }
 
-    func.onShow(msg.chat.id, validatorNodeDict);
+    command.onShow(msg.chat.id, nodeManager.getNodeDictKeys());
 });
 
 bot.onText("/help", (msg) => {
-
-    func.onHelp(msg.chat.id);
+    command.onHelp(msg.chat.id);
 });
 
 bot.onText("/status", (msg) => {
-    if(!func.getAuthentication(msg.chat.id)) {
+    if(!getAuthentication(msg.chat.id)) {
         logger.warn(`비정상 접근 감지 ${msg.from.username}`);
         return;
     }
 
-    func.onStatus(msg.chat.id, Object.keys(validatorNodeDict));
+    command.onStatus(msg.chat.id, nodeManager.getNodeDictKeys());
 });
 
 bot.onText(/\/miss (.+)/, (msg, match) => {
-    if(!func.getAuthentication(msg.chat.id)) {
+    if(!getAuthentication(msg.chat.id)) {
         logger.warn(`비정상 접근 감지 ${msg.from.username}`);
         return;
     }
 
-    if(Object.keys(validatorNodeDict).length === 0) {
+    if(nodeManager.getNodeDictKeys().length === 0) {
         sendMessage(msg.chat.id, "먼저 노드를 연결해주세요.");
         return;
     }
 
     const split = match[1].split(" ");
 
-    var networkDict = {};
-
-    Object.keys(validatorNodeDict).forEach((ip) => {
-        networkDict[validatorNodeDict[ip].ValidatorInfo.network] = ip;
-    })
-
-    func.onSelect(msg.chat.id, networkDict, split[0], split[1]);
+    command.onSelect(msg.chat.id, nodeManager.getIPbyNetwork(), split[0], split[1]);
 })
 
 
 bot.onText(/\/vote (.+)/, (msg, match) => {
-    if(!func.getAuthentication(msg.chat.id)) {
+    if(!getAuthentication(msg.chat.id)) {
         logger.warn(`비정상 접근 감지 ${msg.from.username}`);
         return;
     }
@@ -215,27 +135,10 @@ bot.onText(/\/vote (.+)/, (msg, match) => {
         return;
     }
 
-    func.onSelectVote(msg.chat.id, height, network);
+    command.onSelectVote(msg.chat.id, height, network);
 })
 
 bot.onText("/version", (msg) => {
-    func.onVersion(msg.chat.id);
-});
-
-// 프로그램 종료 시 처리할 작업을 정의
-process.on('exit', (code) => {
-    sendMessageAllChat(`Mblock Bot이 종료 되었습니다`);
-});
-
-// Ctrl + C로 프로그램 종료 시 처리할 작업
-process.on('SIGINT', () => {
-    sendMessageAllChat(`Mblock Bot이 종료 되었습니다`);
-    process.exit();
-});
-
-// 기타 종료 시도 시 작업 정의 (예: 오류 발생)
-process.on('uncaughtException', (err) => {
-    sendMessageAllChat('예상치 못한 오류로 인해 종료됩니다');
-    process.exit(1);
+    command.onVersion(msg.chat.id);
 });
 
