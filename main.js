@@ -41,19 +41,19 @@ bot.onText(/\/add (.+)/, async (msg, match) => {
         const isMiss = await func.onNewBlock(msg.chat.id, ip, chainId, height, nodeManager.getNodeByIp(ip).ValidatorInfo.validatorAddr, signatures);
 
         if(isMiss) {
-            indexer.missBlockDetected(chainId, height);
+            //indexer.missBlockDetected(chainId, height);
         }
     });
 
-    nodeManager.addSubscribe(ip, "Vote", (data) => {
-        const network = nodeManager.getNodeByIp(ip).ValidatorInfo.network;
-
-        func.voteEvent(data, network);
-    });
-
-    nodeManager.addSubscribe(ip, "NewRound", (data) => {
-        func.newRoundEvent(data, msg.chat.id, nodeManager.getNodeByIp(ip), ip);
-    })
+    // nodeManager.addSubscribe(ip, "Vote", (data) => {
+    //     const network = nodeManager.getNodeByIp(ip).ValidatorInfo.network;
+    //
+    //     func.voteEvent(data, network);
+    // });
+    //
+    // nodeManager.addSubscribe(ip, "NewRound", (data) => {
+    //     func.newRoundEvent(data, msg.chat.id, nodeManager.getNodeByIp(ip), ip);
+    // })
 });
 
 bot.onText(/\/delete (.+)/, (msg, match) => {
