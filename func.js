@@ -87,16 +87,22 @@ export function voteEvent(data, network) {
     const height = parseInt(Vote.height);
     const index = parseInt(Vote.validator_index);
 
-    if(indexer.isNull(network) || indexer.isNull(network, height)) {
+    if(indexer.isNull(network)) {
         return;
     }
 
-    indexer.addVote(network, height, index, voteType);
+    try {
+        indexer.addVote(network, height, index, voteType);
+    }
+    catch (e) {
+        logger.error(`${network} - ${height} : Vote가 Round보다 먼저 들어옴`);
+    }
 }
 
 export function newRoundEvent(data, chatId, validatorNode, ip) {
     const network = validatorNode.ValidatorInfo.network;
     const height = data.value.height;
+    const round = data.value.round;
 
     if(indexer.isNull(network) && !validatorNode.observe) {
         indexer.initVoteInfo(network);
@@ -104,8 +110,12 @@ export function newRoundEvent(data, chatId, validatorNode, ip) {
         sendMessage(chatId, `${ip} Miss Block 감지 준비 완료`);
     }
 
-    if(height > indexer.indexerSize &&  !indexer.isNull(network, height - indexer.indexerSize)) {
+    if(height > indexer.indexerSize && !indexer.isNull(network, height - indexer.indexerSize)) {
         indexer.deleteHeight(network, height - indexer.indexerSize)
+    }
+
+    if(round > 0) {
+        logger.info(`${network} - ${height} 새로운 라운드 실행`);
     }
 
     indexer.newRoundVote(network, height);
