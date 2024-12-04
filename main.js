@@ -51,9 +51,9 @@ bot.onText(/\/add (.+)/, async (msg, match) => {
     //     func.voteEvent(data, network);
     // });
     //
-    // nodeManager.addSubscribe(ip, "NewRound", (data) => {
-    //     func.newRoundEvent(data, msg.chat.id, nodeManager.getNodeByIp(ip), ip);
-    // })
+    nodeManager.addSubscribe(ip, "NewRound", (data) => {
+        func.newRoundEvent(data, msg.chat.id, nodeManager.getNodeByIp(ip), ip);
+    })
 });
 
 bot.onText(/\/delete (.+)/, (msg, match) => {

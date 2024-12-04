@@ -100,20 +100,20 @@ export function newRoundEvent(data, chatId, validatorNode, ip) {
     const round = data.value.round;
 
     if(indexer.isNull(network) && !validatorNode.observe) {
-        indexer.initVoteInfo(network);
+       // indexer.initVoteInfo(network);
         validatorNode.onObserve();
         sendMessage(chatId, `${ip} Miss Block 감지 준비 완료`);
     }
 
-    if(height > indexer.indexerSize && !indexer.isNull(network, height - indexer.indexerSize)) {
-        indexer.deleteHeight(network, height - indexer.indexerSize)
-    }
+    // if(height > indexer.indexerSize && !indexer.isNull(network, height - indexer.indexerSize)) {
+    //     indexer.deleteHeight(network, height - indexer.indexerSize)
+    // }
 
     if(round > 0) {
         logger.info(`${network} - ${height} 새로운 라운드 실행`);
     }
 
-    indexer.newRoundVote(network, height);
+    //indexer.newRoundVote(network, height);
 }
 
 export async function onNewBlock(chatId, ip, chainId, height, myAddress, signatures) {
