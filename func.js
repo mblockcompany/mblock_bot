@@ -91,12 +91,7 @@ export function voteEvent(data, network) {
         return;
     }
 
-    try {
-        indexer.addVote(network, height, index, voteType);
-    }
-    catch (e) {
-        logger.error(`${network} - ${height} : Vote가 Round보다 먼저 들어옴`);
-    }
+    indexer.addVote(network, height, index, voteType).catch(logger.error);
 }
 
 export function newRoundEvent(data, chatId, validatorNode, ip) {

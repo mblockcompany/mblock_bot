@@ -126,9 +126,7 @@ function subscribeToEvent(ws, eventType, id) {
         "id": id // 랜덤 ID 생성
     };
 
-    sendWhenConnected(ws, JSON.stringify(request)).then((result) => {
-        logger.info(``)
-    });
+    sendWhenConnected(ws, JSON.stringify(request));
 }
 
 function sendWhenConnected(webSocket, message) {
