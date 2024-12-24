@@ -86,7 +86,7 @@ bot.onText("/show", (msg) => {
         return;
     }
 
-    command.onShow(msg.chat.id, nodeManager.getNodeDictKeys());
+    command.onShow(msg.chat.id, nodeManager);
 });
 
 bot.onText("/help", (msg) => {

@@ -15,7 +15,7 @@ export async function onVote(voteDtoList) {
 }
 
 
-async function getStatus(ip) {
+export async function getStatus(ip) {
     const response = await axios.get(`http://${ip}:26657/status`);
     const result = response.data.result;
 

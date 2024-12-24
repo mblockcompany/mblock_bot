@@ -4,7 +4,7 @@ import * as DB from "./framework/connectionPool.js";
 import * as text from "./framework/textConstant.js";
 import * as auth from "./framework/auth.js";
 import {CountDto} from "./framework/dtos.js";
-import {getValidatorList} from "./func.js";
+import * as func from "./func.js";
 
 export function onDelete(username, ip) {
     const message = `${username}에 의해 ${ip}연결을 종료합니다.`;
@@ -61,7 +61,7 @@ export async function onSelect(chatId, networkDict, start, end) {
     for (const network in networkDict) {
         const ip = networkDict[network];
 
-        validatorIndexDict[network] = await getValidatorList(ip);
+        validatorIndexDict[network] = await func.getValidatorList(ip);
     }
 
     results.forEach(row => {
@@ -119,7 +119,7 @@ export async function onStatus(chatId, ipList) {
     var message = "";
 
     for (const ip of ipList) {
-        const result = await getStatus(ip);
+        const result = await func.getStatus(ip);
         message += result + "\n";
     }
 
@@ -129,7 +129,7 @@ export async function onStatus(chatId, ipList) {
 export function onHelp(chatId) {
     var message = text.notAuthHelp;
 
-    if(authenticationDict[chatId])
+    if(auth.getAuthentication(chatId))
         message += text.Help
 
     sendMessage(chatId, message)
@@ -139,13 +139,13 @@ export function onVersion(chatId) {
     sendMessage(chatId, text.version);
 }
 
-export function onShow(chatId) {
+export function onShow(chatId, nodeManager) {
     var IPs = "";
 
     const ipList = nodeManager.getNodeDictKeys();
 
     ipList.forEach(ip => {
-        IPs += text.Show(ip, validatorNodeDict[ip].ValidatorInfo.validatorAddr);
+        IPs += text.Show(ip, nodeManager.getNodeByIp(ip).ValidatorInfo.validatorAddr);
     });
 
     if (IPs === "")
